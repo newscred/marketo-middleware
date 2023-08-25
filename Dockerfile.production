@@ -1,0 +1,16 @@
+FROM node:16.18.1 AS deps
+
+WORKDIR /code
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --ignore-optional --production
+
+
+FROM node:16.18.1-slim
+
+ENV NODE_ENV=production
+ENV SERVER_PORT=8000
+WORKDIR /opt/marketo-middleware
+RUN mkdir -p /var/log/marketo-middleware && chown node /var/log/marketo-middleware
+COPY ./ ./
+COPY --from=deps /code/node_modules ./node_modules
+CMD [ "yarn", "lite" ]

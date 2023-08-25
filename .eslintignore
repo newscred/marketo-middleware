@@ -1,0 +1,7 @@
+!/.eslintplugin
+/build
+/dist
+/runtime_build
+/node
+/reports
+/server/static

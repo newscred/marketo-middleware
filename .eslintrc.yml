@@ -1,0 +1,46 @@
+---
+extends:
+  - eslint:recommended
+  - prettier
+  - prettier/prettier
+parserOptions:
+  ecmaVersion: 2020
+  sourceType: "module"
+plugins:
+  - import
+env:
+  es6: true
+  node: true
+rules:
+  curly:
+    - error
+    - all
+  no-extra-boolean-cast:
+    - 0
+  no-console:
+    - error
+    - allow: [warn, error]
+  spaced-comment:
+    - error
+    - always
+  no-throw-literal:
+    - error
+  eqeqeq: 2
+  guard-for-in: 2
+  require-atomic-updates: off
+  no-useless-escape: off
+  no-prototype-builtins: off
+  no-useless-catch: off
+  sort-imports:
+    - error
+    - ignoreDeclarationSort: true
+globals:
+  module: false
+overrides:
+  - files:
+      - "*.js"
+    rules:
+      "no-unused-vars":
+        - error
+        - argsIgnorePattern: "^_"
+          ignoreRestSiblings: true
