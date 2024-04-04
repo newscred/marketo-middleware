@@ -1,13 +1,16 @@
 import axios from 'axios';
 
+const DEFAULT_SSO_DOMAIN = "https://accounts.welcomesoftware.com";
+
 export async function getToken(clientId, clientSecret) {
   const tokenData = {
     client_id: clientId,
     client_secret: clientSecret,
     grant_type: 'client_credentials'
   };
+
   const tokenRequest = await axios.post(
-    `${process.env.SSO_DOMAIN}/o/oauth2/v1/token`,
+    `${process.env.SSO_DOMAIN || DEFAULT_SSO_DOMAIN}/o/oauth2/v1/token`,
     tokenData,
     {
       headers: {
