@@ -1,0 +1,29 @@
+{
+    "name": "marketo-middleware",
+    "description": "Marketo Middleware Integration",
+    "parameters": {
+        "MARKETO_REST_URL": {
+            "label": "Marketo Rest URL",
+            "type": "string",
+            "required": true
+        },
+        "MARKETO_CLIENT_ID": {
+            "label": "Marketo Client ID",
+            "type": "string",
+            "required": true
+        },
+        "MARKETO_CLIENT_SECRET": {
+            "label": "Marketo Client Secret",
+            "type": "string",
+            "required": true
+        }
+    },
+    "webhooks": {
+        "preview": {
+            "description": "Webhook for Marketo Middleware",
+            "secret": "preview_secret",
+            "endpoint": "/preview/callback",
+            "event_names": ["content_preview_requested"]
+        }
+    }
+}
