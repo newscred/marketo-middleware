@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development npx nodemon --signal SIGTERM server.js",
-    "lite": "NODE_ENV=development node ./server.js",
+    "lite": "node ./server.js",
     "lint": "npx eslint ."
   },
   "engines": {
