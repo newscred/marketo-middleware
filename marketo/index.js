@@ -23,7 +23,12 @@ export async function publishMarketo(req, res) {
   const structuredContent = payload.data.assets.structured_contents[0];
   const contentTypeName = structuredContent.content_body.content_type.name;
   const orgId = payload.data.organization.id;
-  const accessify = new Accessify(orgId);
+  // get app token for open api calls
+  
+  const configFromEnv = _getConfigFromENV();
+  const token = await getToken(configFromEnv.APP_CLIENT_ID, configFromEnv.APP_CLIENT_SECRET);
+
+  const accessify = new Accessify(token);
   const contentTypeMapping = await accessify.getContentTypeMapping();
   if (!contentTypeMapping.hasOwnProperty(contentTypeName)) {
     appLogger.error({
@@ -36,11 +41,9 @@ export async function publishMarketo(req, res) {
   // get config data from accessify
   const configFromAccessify = await accessify.getConfig();
   const config = {
-    ..._getConfigFromENV(),
+    ...configFromEnv,
     ...configFromAccessify
   };
-  // get app token for open api calls
-  const token = await getToken(config.APP_CLIENT_ID, config.APP_CLIENT_SECRET);
 
   const fieldsWithLocal = structuredContent.content_body.latest_fields_version.fields;
   const structuredContentId = structuredContent.id;
@@ -57,7 +60,8 @@ export async function publishMarketo(req, res) {
     config.MARKETO_CLIENT_SECRET,
     contentType.programId,
     orgId,
-    config.PUBLISH_FOLDER_ID
+    config.PUBLISH_FOLDER_ID,
+    token,
   );
   appLogger.info({
     baseURL: config.MARKETO_BASE_URL,
