@@ -4,13 +4,14 @@ import Accessify from '../accessify/index.js';
 import { appLogger } from '../logger.js';
 
 export default class Marketo {
-  constructor(baseURL, clientId, clientSecret, rootProgram, orgId, toFolder) {
+  constructor(baseURL, clientId, clientSecret, rootProgram, orgId, toFolder, token) {
     this.baseURL = baseURL;
     this.clientId = clientId;
     this.clientSecret = clientSecret;
     this.programId = rootProgram;
     this.orgId = orgId;
     this.toFolder = toFolder;
+    this.token = token;
   }
   get restURL() {
     return `${this.baseURL}/rest`;
@@ -25,7 +26,7 @@ export default class Marketo {
     this.accessToken = tokenAPIResponse.data.access_token;
   }
   async getEmailPreviewURL(emailId) {
-    const accessify = new Accessify(this.orgId);
+    const accessify = new Accessify(this.token);
     // get an email preview html
     const emailPreview = await this.getEmailPreview(emailId);
     appLogger.info({emailId}, 'fetched preview');
