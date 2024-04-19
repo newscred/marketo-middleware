@@ -142,7 +142,8 @@ export async function generatePreview(req, res) {
     config.MARKETO_CLIENT_SECRET,
     contentType.programId,
     orgId,
-    config.PREVIEW_FOLDER_ID
+    config.PREVIEW_FOLDER_ID,
+    token
   );
   appLogger.info({
     baseURL: config.MARKETO_BASE_URL,
