@@ -93,7 +93,14 @@ export async function generatePreview(req, res) {
   appLogger.info('Generating preview');
   const contentTypeName = payload.data.assets?.structured_contents[0].content_body.content_type.name;
   const orgId = payload.data.organization.id;
-  const accessify = new Accessify(orgId);
+
+  const configFromEnv =  _getConfigFromENV();
+
+  // get app token for open api calls
+  const token = await getToken(configFromEnv.APP_CLIENT_ID, configFromEnv.APP_CLIENT_SECRET);
+  appLogger.info('generated Token');
+
+  const accessify = new Accessify(token);
   const contentTypeMapping = await accessify.getContentTypeMapping();
   if (!contentTypeMapping.hasOwnProperty(contentTypeName)) {
     appLogger.error({
@@ -108,14 +115,11 @@ export async function generatePreview(req, res) {
   // get config data from accessify
   const configFromAccessify = await accessify.getConfig();
   const config = {
-    ..._getConfigFromENV(),
-    ...configFromAccessify
+    ...configFromEnv,
+    ...configFromAccessify,
   };
-  // get app token for open api calls
-  const token = await getToken(config.APP_CLIENT_ID, config.APP_CLIENT_SECRET);
-  const hash = payload.data.assets?.structured_contents[0]?.content_body.fields_version.content_hash;
-  appLogger.info('generated Token');
 
+  const hash = payload.data.assets?.structured_contents[0]?.content_body.fields_version.content_hash;
   // acknowledge the preview request
   await postPublicAPI(token, payload.data.links.acknowledge, {
     acknowledged_by: "mkto-middleware",

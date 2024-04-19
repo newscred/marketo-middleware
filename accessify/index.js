@@ -3,26 +3,28 @@ import { appLogger } from '../logger.js';
 import { defaultMapping } from './tokenConfig.js';
 
 export default class Accessify {
-  constructor(orgId) {
-    this.orgId = orgId;
-    this.integrationId = 'mkto-middleware';
+  constructor(token) {
+    this.token = token;
   }
   get baseURL() {
-    return `${process.env.ACCESSIFY_URL}/instance/${this.orgId}/integration/${this.integrationId}/value`;
+    return `${process.env.ACCESSIFY_URL}/value`;
   }
   get publicURL() {
-    return `${process.env.ACCESSIFY_PUBLIC_URL || process.env.ACCESSIFY_URL}/instance/${this.orgId}/integration/${this.integrationId}/value`;
+    return `${process.env.ACCESSIFY_PUBLIC_URL || process.env.ACCESSIFY_URL}/value`;
   }
   async store(key, value) {
     await axios.put(
       `${this.baseURL}/${key}`,
       { value, mimeType: 'text/html' },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` } }
     );
     return `${this.publicURL}/${key}`;
   }
   async getData(key) {
-    const response = await axios.get(`${this.baseURL}/${key}`);
+    const response = await axios.get(
+      `${this.baseURL}/${key}`, 
+      { headers: { 'Authorization': `Bearer ${this.token}` } }
+    );
     return response.data;
   }
   async getConfig() {
