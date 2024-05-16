@@ -16,6 +16,18 @@
             "label": "Marketo Client Secret",
             "type": "string",
             "required": true
+        },
+        "PREVIEW_FOLDER_ID": {
+            "label": "Preview Folder ID",
+            "type": "string"
+        },
+        "PUBLISH_FOLDER_ID": {
+            "label": "Publish Folder ID",
+            "type": "string"
+        },
+        "_content_type": {
+            "label": "Content Type Mapping",
+            "type": "json"
         }
     },
     "webhooks": {
