@@ -74,7 +74,7 @@ export async function publishMarketo(req, res) {
   await marketo.initialize();
 
   // generate marketo email
-  const { previewURL } = await generateEmail(marketo, mktoTokens, structuredContent.title);
+  const { previewURL } = await generateEmail(marketo, mktoTokens, `${structuredContent.title}-${Date.now()}`);
   appLogger.info({url: previewURL}, 'preview generated');
 
   await postPublicAPI(token, payload.data.publishing_event.links.publishing_metadata, {
