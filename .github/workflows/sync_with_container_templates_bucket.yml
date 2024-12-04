@@ -1,0 +1,35 @@
+name: Sync with container templates S3 bucket
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  zip_file_name: ${{ github.event.repository.name }}-${{ github.head_ref || github.ref_name }}.zip
+
+jobs:
+  upload-templates:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CODE_TEMPLATE_TO_S3_IAM_ROLE }}
+          aws-region: us-east-1
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Zip code into template
+        run: |
+          zip * -r ${{ env.zip_file_name }}
+      - name: Upload template to s3
+        run: |
+          aws s3 cp \
+            ${{ env.zip_file_name }} \
+            s3://container-code-templates/${{ env.zip_file_name }} \
+            --acl public-read
