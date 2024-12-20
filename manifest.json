@@ -9,12 +9,12 @@
         },
         "MARKETO_CLIENT_ID": {
             "label": "Marketo Client ID",
-            "type": "string",
+            "type": "secret",
             "required": true
         },
         "MARKETO_CLIENT_SECRET": {
             "label": "Marketo Client Secret",
-            "type": "string",
+            "type": "secret",
             "required": true
         },
         "PREVIEW_FOLDER_ID": {
