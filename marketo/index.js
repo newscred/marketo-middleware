@@ -71,11 +71,36 @@ export async function publishMarketo(req, res) {
     orgId,
     toFolderID: config.PUBLISH_FOLDER_ID
   }, 'marketo cli initiated');
-  await marketo.initialize();
+  let previewURL;
+  try {
+    await marketo.initialize();
 
-  // generate marketo email
-  const { previewURL } = await generateEmail(marketo, mktoTokens, `${structuredContent.title}-${(new Date()).toISOString()}`);
-  appLogger.info({url: previewURL}, 'preview generated');
+    // generate marketo email
+    ({ previewURL } = await generateEmail(marketo, mktoTokens, `${structuredContent.title}-${(new Date()).toISOString()}`));
+    appLogger.info({url: previewURL}, 'preview generated');
+  } catch (err) {
+    /*
+    Report the failure back to CMP so the reason is visible in the publishing tab.
+    Without this the author only ever sees the generic webhook error, and the
+    Marketo message is lost.
+    */
+    appLogger.error({err}, 'marketo publishing failed, reporting failed status to CMP');
+    try {
+      await postPublicAPI(token, payload.data.publishing_event.links.publishing_metadata, {
+        data: [{
+          status: 'failed',
+          status_message: String(err.message).slice(0, 500),
+          publishing_destination_updated_at: (new Date()).toISOString(),
+          asset_id: structuredContentId,
+          locale: 'en'
+        }],
+      });
+    } catch (reportErr) {
+      // Never let the reporting failure mask the Marketo error that caused it.
+      appLogger.error({err: reportErr}, 'failed to report publishing failure to CMP');
+    }
+    throw err;
+  }
 
   await postPublicAPI(token, payload.data.publishing_event.links.publishing_metadata, {
     data: [{
@@ -160,9 +185,14 @@ export async function generatePreview(req, res) {
   const {clonedProgram, previewURL} = await generateEmail(marketo, mktoTokens);
   appLogger.info({url: previewURL}, 'preview generated');
 
-  // delete the temp program
-  marketo.deleteProgram(clonedProgram.id);
-  appLogger.info('deleted temp program');
+  /*
+  Best-effort cleanup. Deliberately not awaited so a slow delete does not hold up the
+  preview response, but the rejection must be handled here: an unhandled rejection is
+  fatal (see the process handler in logger.js) and would take the container down.
+  */
+  marketo.deleteProgram(clonedProgram.id)
+    .then(() => appLogger.info('deleted temp program'))
+    .catch(err => appLogger.warn({err, programId: clonedProgram.id}, 'failed to delete temp program'));
 
   // send complete api call to the openapi
   await postPublicAPI(token, payload.data.links.complete, {
