@@ -13,7 +13,7 @@ function catchAll(func, errMsg) {
   return (req, res) => {
     func(req, res).catch(err => {
       appLogger.error({err}, errMsg);
-      res.status(500).json({message: errMsg});
+      res.status(500).json({message: errMsg, error: err.message});
     });
   };
 }
