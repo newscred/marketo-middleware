@@ -1,4 +1,5 @@
 import { getAssetURL } from "../cmp.js";
+import { appLogger } from "../logger.js";
 
 function mergeTokenData(listResults) {
   let returnVal = {};
@@ -66,7 +67,20 @@ export async function prepareMKTOTokenData(fieldValues, valueMapping, apiToken) 
             [attrSchema.mktoToken]: url
           };
         }
+        return;
       }
+      /*
+      An unrecognised _type silently produces no token, so the Marketo template keeps
+      whatever default the source program carried and nothing anywhere reports it.
+      A single mis-cased value in the mapping config (e.g. 'UrlField' for 'URLField')
+      is enough to drop every field of that type. Warn rather than fail: a partial
+      email is still better than none, but it must not be silent.
+      */
+      appLogger.warn({
+        attribute: attr,
+        type: attrSchema._type,
+        mktoToken: attrSchema.mktoToken
+      }, 'unsupported field _type in content type mapping, no Marketo token produced');
       return;
     }));
   return mergeTokenData(results);
