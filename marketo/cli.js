@@ -49,6 +49,9 @@ export default class Marketo {
   get restURL() {
     return `${this.baseURL}/rest`;
   }
+  get authHeaders() {
+    return { Authorization: `Bearer ${this.accessToken}` };
+  }
   async initialize() {
     await this.generateToken();
   }
@@ -78,15 +81,16 @@ export default class Marketo {
   async cloneProgram(newName) {
     const cloneData = `name=${newName}&folder={"id":${this.toFolder},"type":"Folder"}&description=Description`;
     const requestData = await axios.post(
-      `${this.restURL}/asset/v1/program/${this.programId}/clone.json?access_token=${this.accessToken}`,
+      `${this.restURL}/asset/v1/program/${this.programId}/clone.json`,
       cloneData,
-      {headers: {'content-type': 'application/x-www-form-urlencoded'}}
+      {headers: {'content-type': 'application/x-www-form-urlencoded', ...this.authHeaders}}
     );
     return assertMarketoSuccess(requestData, 'cloneProgram')[0];
   }
   async getEmailFromProgram(programId) {
     const requestData = await axios.get(
-      `${this.restURL}/asset/v1/emails.json?access_token=${this.accessToken}&folder={"id":${programId},"type":"Program"}`
+      `${this.restURL}/asset/v1/emails.json?folder={"id":${programId},"type":"Program"}`,
+      {headers: this.authHeaders}
     );
     return assertMarketoSuccess(requestData, 'getEmailFromProgram')[0];
   }
@@ -98,26 +102,29 @@ export default class Marketo {
   }
   async upsertTokenData(programId, {value, name}) {
     const requestData = await axios.post(
-      `${this.restURL}/asset/v1/folder/${programId}/tokens.json?access_token=${this.accessToken}`,
+      `${this.restURL}/asset/v1/folder/${programId}/tokens.json`,
       new url.URLSearchParams({
         name,
         value: value.value ?? value,
         type: value.type ?? 'text',
         folderType: 'Program'
       }).toString(),
-      {headers: {'content-type': 'application/x-www-form-urlencoded'}}
+      {headers: {'content-type': 'application/x-www-form-urlencoded', ...this.authHeaders}}
     );
     assertMarketoSuccess(requestData, `upsertTokenData(${name})`);
   }
   async getEmailPreview(emailId) {
     const emailPreview = await axios.get(
-      `${this.restURL}/asset/v1/email/${emailId}/fullContent.json?access_token=${this.accessToken}`
+      `${this.restURL}/asset/v1/email/${emailId}/fullContent.json`,
+      {headers: this.authHeaders}
     );
     return assertMarketoSuccess(emailPreview, 'getEmailPreview')[0].content;
   }
   async deleteProgram(programId) {
     const requestData = await axios.post(
-      `${this.restURL}/asset/v1/program/${programId}/delete.json?access_token=${this.accessToken}`
+      `${this.restURL}/asset/v1/program/${programId}/delete.json`,
+      null,
+      {headers: this.authHeaders}
     );
     assertMarketoSuccess(requestData, 'deleteProgram');
   }
