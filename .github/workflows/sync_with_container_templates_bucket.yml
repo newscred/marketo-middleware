@@ -31,5 +31,4 @@ jobs:
         run: |
           aws s3 cp \
             ${{ env.zip_file_name }} \
-            s3://container-code-templates/${{ env.zip_file_name }} \
-            --acl public-read
+            s3://container-code-templates/${{ env.zip_file_name }}
