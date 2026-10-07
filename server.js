@@ -60,12 +60,17 @@ app.use((req, res, next) => {
   runWithRequestContext({ logger: pinoLogger.child({ reqId: req.id }) }, () => next());
 });
 
+function logWebhookPayload(req, res, next) {
+  log().debug({ payload: req.body }, 'webhook payload');
+  next();
+}
+
 app.get('/_status', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-app.post('/preview/callback', catchAll(generatePreview, 'error responding for preview'));
-app.post('/publishing/callback', catchAll(publishMarketo, 'error responding for publishing'));
+app.post('/preview/callback', logWebhookPayload, catchAll(generatePreview, 'error responding for preview'));
+app.post('/publishing/callback', logWebhookPayload, catchAll(publishMarketo, 'error responding for publishing'));
 
 http.createServer(app).listen(app.get('port'), () => {
   appLogger.info({ port: app.get('port') }, 'server listening');
