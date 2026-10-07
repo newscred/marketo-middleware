@@ -32,6 +32,13 @@ function chooseRequestId(req) {
   return isSafe ? incomingRequestId : randomUUID();
 }
 
+// Built from pinoLogger rather than req.log because pino-http re-children its
+// logger with its own serializers, replacing the one that keeps the
+// Authorization header out of logged axios errors.
+function requestLoggerFor(req) {
+  return pinoLogger.child({ reqId: req.id });
+}
+
 const app = express();
 app.set('port', process.env.SERVER_PORT);
 
@@ -53,11 +60,8 @@ app.use(express.json({limit: '2mb'}));
 
 // Must come after express.json(): body-parser resumes from a stream event, which
 // runs outside any context bound earlier, so the request context would be lost.
-// The child is built from pinoLogger rather than req.log because pino-http
-// re-children its logger with its own serializers, replacing the one that keeps
-// the Authorization header out of logged axios errors.
 app.use((req, res, next) => {
-  runWithRequestContext({ logger: pinoLogger.child({ reqId: req.id }) }, () => next());
+  runWithRequestContext({ logger: requestLoggerFor(req) }, () => next());
 });
 
 function logWebhookPayload(req, res, next) {
@@ -71,6 +75,17 @@ app.get('/_status', (req, res) => {
 
 app.post('/preview/callback', logWebhookPayload, catchAll(generatePreview, 'error responding for preview'));
 app.post('/publishing/callback', logWebhookPayload, catchAll(publishMarketo, 'error responding for publishing'));
+
+// Reached by errors raised before a route handler runs, such as a malformed JSON
+// body. Express's default handler would print a multi-line stack to stderr and
+// answer with an HTML page carrying no request id.
+// Express only treats a four-argument function as an error handler.
+app.use((err, req, res, _next) => {
+  const statusCode = err.status || err.statusCode || 500;
+  requestLoggerFor(req)[statusCode >= 500 ? 'error' : 'warn']({ err }, 'request rejected');
+  if (res.headersSent) { return; }
+  res.status(statusCode).json({ message: 'request rejected', error: err.message, requestId: req.id });
+});
 
 http.createServer(app).listen(app.get('port'), () => {
   appLogger.info({ port: app.get('port') }, 'server listening');
