@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { appLogger } from '../logger.js';
+import { requestCMP } from '../cmp.js';
+import { log } from '../logger.js';
 import { defaultMapping } from './tokenConfig.js';
 
 export default class Accessify {
@@ -13,18 +13,20 @@ export default class Accessify {
     return `${process.env.ACCESSIFY_PUBLIC_URL || process.env.ACCESSIFY_URL}/value`;
   }
   async store(key, value) {
-    await axios.put(
-      `${this.baseURL}/${key}`,
-      { value, mimeType: 'text/html' },
-      { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` } }
-    );
+    await requestCMP('accessifyStore', {
+      method: 'put',
+      url: `${this.baseURL}/${key}`,
+      data: { value, mimeType: 'text/html' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+    });
     return `${this.publicURL}/${key}`;
   }
   async getData(key) {
-    const response = await axios.get(
-      `${this.baseURL}/${key}`, 
-      { headers: { 'Authorization': `Bearer ${this.token}` } }
-    );
+    const response = await requestCMP('accessifyGet', {
+      method: 'get',
+      url: `${this.baseURL}/${key}`,
+      headers: { 'Authorization': `Bearer ${this.token}` },
+    }, { expectedFailureStatuses: [404] });
     return response.data;
   }
   /*
@@ -35,9 +37,10 @@ export default class Accessify {
   */
   _logLookupFailure(key, err, fallbackDescription) {
     const isMissing = err.response?.status === 404;
-    const logAtLevel = isMissing ? appLogger.debug : appLogger.error;
+    const logger = log();
+    const logAtLevel = isMissing ? logger.debug : logger.error;
     logAtLevel.call(
-      appLogger,
+      logger,
       {err, key, status: err.response?.status},
       `accessify key '${key}' ${isMissing ? 'not set' : 'could not be read'}, ${fallbackDescription}`
     );

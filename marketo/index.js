@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { appLogger } from '../logger.js';
+import { log } from '../logger.js';
 import { getToken, postPublicAPI } from '../cmp.js';
 import Marketo from './cli.js';
 import { prepareMKTOTokenData } from './tokenMapper.js';
@@ -31,7 +31,7 @@ export async function publishMarketo(req, res) {
   const accessify = new Accessify(token);
   const contentTypeMapping = await accessify.getContentTypeMapping();
   if (!contentTypeMapping.hasOwnProperty(contentTypeName)) {
-    appLogger.error({
+    log().error({
       contentTypeName,
       availableTypes: Object.keys(contentTypeMapping)
     }, 'rejecting publishing for non supported content type');
@@ -47,11 +47,11 @@ export async function publishMarketo(req, res) {
 
   const fieldsWithLocal = structuredContent.content_body.latest_fields_version.fields;
   const structuredContentId = structuredContent.id;
-  appLogger.info('publishing marketo');
+  log().info('publishing marketo');
 
   // prepare mkto token data
   const mktoTokens = await prepareMKTOTokenData(fieldsWithLocal, contentType.mapping, token);
-  appLogger.info('prepared MKTO token data');
+  log().info('prepared MKTO token data');
 
   // initialize marketo cli
   const marketo = new Marketo(
@@ -63,10 +63,8 @@ export async function publishMarketo(req, res) {
     config.PUBLISH_FOLDER_ID,
     token,
   );
-  appLogger.info({
+  log().info({
     baseURL: config.MARKETO_BASE_URL,
-    clientID: config.MARKETO_CLIENT_ID,
-    clientSecret: config.MARKETO_CLIENT_SECRET,
     programID: contentType.programId,
     orgId,
     toFolderID: config.PUBLISH_FOLDER_ID
@@ -77,14 +75,14 @@ export async function publishMarketo(req, res) {
 
     // generate marketo email
     ({ previewURL } = await generateEmail(marketo, mktoTokens, `${structuredContent.title}-${(new Date()).toISOString()}`));
-    appLogger.info({url: previewURL}, 'preview generated');
+    log().info({url: previewURL}, 'preview generated');
   } catch (err) {
     /*
     Report the failure back to CMP so the reason is visible in the publishing tab.
     Without this the author only ever sees the generic webhook error, and the
     Marketo message is lost.
     */
-    appLogger.error({err}, 'marketo publishing failed, reporting failed status to CMP');
+    log().error({err}, 'marketo publishing failed, reporting failed status to CMP');
     try {
       await postPublicAPI(token, payload.data.publishing_event.links.publishing_metadata, {
         data: [{
@@ -97,7 +95,7 @@ export async function publishMarketo(req, res) {
       });
     } catch (reportErr) {
       // Never let the reporting failure mask the Marketo error that caused it.
-      appLogger.error({err: reportErr}, 'failed to report publishing failure to CMP');
+      log().error({err: reportErr}, 'failed to report publishing failure to CMP');
     }
     throw err;
   }
@@ -112,14 +110,14 @@ export async function publishMarketo(req, res) {
       locale: 'en'
     }],
   });
-  appLogger.info('publishing completed');
+  log().info('publishing completed');
   return res.status(200).json({success: true});
 };
 
 export async function generatePreview(req, res) {
   const payload = req.body;
   const fieldsWithLocal = payload.data.assets?.structured_contents[0]?.content_body.fields_version.fields;
-  appLogger.info('Generating preview');
+  log().info('Generating preview');
   const contentTypeName = payload.data.assets?.structured_contents[0].content_body.content_type.name;
   const orgId = payload.data.organization.id;
 
@@ -127,12 +125,12 @@ export async function generatePreview(req, res) {
 
   // get app token for open api calls
   const token = await getToken(configFromEnv.APP_CLIENT_ID, configFromEnv.APP_CLIENT_SECRET);
-  appLogger.info('generated Token');
+  log().info('generated Token');
 
   const accessify = new Accessify(token);
   const contentTypeMapping = await accessify.getContentTypeMapping();
   if (!contentTypeMapping.hasOwnProperty(contentTypeName)) {
-    appLogger.error({
+    log().error({
       contentTypeName,
       availableTypes: Object.keys(contentTypeMapping)
     }, 'rejecting preview for non supported content type');
@@ -154,11 +152,11 @@ export async function generatePreview(req, res) {
     acknowledged_by: "mkto-middleware",
     content_hash: hash,
   });
-  appLogger.info({url: payload.data.links.acknowledge}, 'preview acknowledged');
+  log().info({url: payload.data.links.acknowledge}, 'preview acknowledged');
 
   // prepare mkto token data
   const mktoTokens = await prepareMKTOTokenData(fieldsWithLocal, contentType.mapping, token);
-  appLogger.debug({mktoTokens}, 'prepared MKTO token data');
+  log().debug({mktoTokens}, 'prepared MKTO token data');
 
   // initialize marketo cli
   const marketo = new Marketo(
@@ -170,10 +168,8 @@ export async function generatePreview(req, res) {
     config.PREVIEW_FOLDER_ID,
     token
   );
-  appLogger.info({
+  log().info({
     baseURL: config.MARKETO_BASE_URL,
-    clientID: config.MARKETO_CLIENT_ID,
-    clientSecret: config.MARKETO_CLIENT_SECRET,
     programID: contentType.programId,
     orgId,
     toFolderID: config.PREVIEW_FOLDER_ID
@@ -183,7 +179,7 @@ export async function generatePreview(req, res) {
 
   // generate marketo email
   const {clonedProgram, previewURL} = await generateEmail(marketo, mktoTokens);
-  appLogger.info({url: previewURL}, 'preview generated');
+  log().info({url: previewURL}, 'preview generated');
 
   /*
   Best-effort cleanup. Deliberately not awaited so a slow delete does not hold up the
@@ -191,8 +187,8 @@ export async function generatePreview(req, res) {
   fatal (see the process handler in logger.js) and would take the container down.
   */
   marketo.deleteProgram(clonedProgram.id)
-    .then(() => appLogger.info('deleted temp program'))
-    .catch(err => appLogger.warn({err, programId: clonedProgram.id}, 'failed to delete temp program'));
+    .then(() => log().info('deleted temp program'))
+    .catch(err => log().warn({err, programId: clonedProgram.id}, 'failed to delete temp program'));
 
   // send complete api call to the openapi
   await postPublicAPI(token, payload.data.links.complete, {
@@ -200,6 +196,6 @@ export async function generatePreview(req, res) {
       [`marketo-email-${uuidv4()}`]: previewURL
     },
   });
-  appLogger.info('preview completed');
+  log().info('preview completed');
   return res.status(200).json({success: true});
 };
