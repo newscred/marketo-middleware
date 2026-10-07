@@ -1,5 +1,5 @@
 import { getAssetURL } from "../cmp.js";
-import { appLogger } from "../logger.js";
+import { log } from "../logger.js";
 
 function mergeTokenData(listResults) {
   let returnVal = {};
@@ -76,7 +76,7 @@ export async function prepareMKTOTokenData(fieldValues, valueMapping, apiToken) 
       is enough to drop every field of that type. Warn rather than fail: a partial
       email is still better than none, but it must not be silent.
       */
-      appLogger.warn({
+      log().warn({
         attribute: attr,
         type: attrSchema._type,
         mktoToken: attrSchema.mktoToken
