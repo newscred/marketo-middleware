@@ -25,6 +25,10 @@
             "label": "Publish Folder ID",
             "type": "string"
         },
+        "LOG_LEVEL": {
+            "label": "Log Level (info or debug)",
+            "type": "string"
+        },
         "_content_type": {
             "label": "Content Type Mapping",
             "type": "json"
