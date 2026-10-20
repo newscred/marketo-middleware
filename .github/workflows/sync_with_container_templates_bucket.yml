@@ -24,9 +24,11 @@ jobs:
           aws-region: us-east-1
       - name: Checkout
         uses: actions/checkout@v3
+      # `git archive` ensures only tracked files are packed, so .git never ends up
+      # in the template; .github is excluded as it has no use there.
       - name: Zip code into template
         run: |
-          zip -r ${{ env.zip_file_name }} .
+          git archive --format=zip -o "${{ env.zip_file_name }}" HEAD ':(exclude).github'
       - name: Upload template to s3
         run: |
           aws s3 cp \
